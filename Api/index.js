@@ -82,6 +82,28 @@ const server = app.listen(3003, () => {
 });
 
 const wss = new ws.Server({ server });
-wss.on('connection', (connection) => {
-console.log('Connected');
-});
+wss.on('connection', (connection, req) => {
+    const cookies = req.headers.cookie;
+    if (cookies) {
+        const tokenCookieString = cookies.split('; ').find(str => str.startsWith('token=')); 
+        if (tokenCookieString) {
+            const token = tokenCookieString.split('=')[1];
+            if (token) {
+                jwt.verify(token, jwtSecret, {}, (err, decodedData) => {
+                    if (err) throw err;
+                    const { userId, username } = decodedData;
+                    connection.userId = userId;
+                    connection.username = username;
+                }); 
+            }
+        }
+    }
+    [...wss.clients].forEach(client => {
+        client.send(JSON.stringify({
+            online: [...wss.clients].map(client => ({ userId: client.userId, username: client.username }))
+        }
+        ));
+    });
+    });
+
+    
