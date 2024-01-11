@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const connectDB = require('./config/Db.config');
 const bcrypt = require('bcryptjs');
-
+const ws = require('ws');
 dotenv.config();
 connectDB();
 
@@ -77,9 +77,11 @@ app.post("/register", async (req, res) => {
 
 
 
-app.listen(3003, () => {
+const server = app.listen(3003, () => {
     console.log('Server running on port 3003');
 });
 
-
-
+const wss = new ws.Server({ server });
+wss.on('connection', (connection) => {
+console.log('Connected');
+});
