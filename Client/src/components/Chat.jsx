@@ -1,15 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import Design from "./Design";
+import { UserContext } from "./UserContext";
+import { uniqBy } from "lodash";
+import axios from "axios";
+
 export default function Chat() {
   const [ws, setWs] = useState(null);
   const [onlinePeople, setOnlinePeople] = useState({});
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const { username, id, setId, setUsername } = useContext(UserContext);
+  const [newMessage, setNewMessage] = useState("");
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:3003");
     setWs(ws);
     ws.addEventListener("message", handleMessage);
   }, []);
+
+  useEffect(() => {
+    if (selectedUserId) {
+        axios.get('/messages/' + selectedUserId)
+    }}, [selectedUserId]);
+
+    useEffect(() => {
+        connectToWs();
+    }, []);
+
+function connectToWs() {
+    const ws = new WebSocket("ws://localhost:3003");
+    setWs(ws);
+    ws.addEventListener("message", handleMessage);
+    ws.addEventListener("close", () => connectToWs());
+}
 
   function showOnlinePeople(peopleArray) {
     const people = {};
@@ -23,15 +46,47 @@ export default function Chat() {
     const messageData = JSON.parse(ev.data);
     if ("online" in messageData) {
       showOnlinePeople(messageData.online);
+    } else if ("text" in messageData) {
+      setMessages((prev) => [...prev, { ...messageData }]);
     }
   }
 
+  function logout() {
+    axios.post("/logout").then(() => {
+      setId(null);
+      setUsername(null);
+    });
+  }
+  function sendMessage(ev) {
+    ev.preventDefault();
+    ws.send(
+      JSON.stringify({
+        recipient: selectedUserId,
+        text: newMessage,
+      })
+    );
 
+    setNewMessage("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: newMessage,
+        sender: id,
+        recipient: selectedUserId,
+        id: Date.now(),
+      },
+    ]);
+  }
+  const onlinePeopleMinusUser = { ...onlinePeople };
 
+  delete onlinePeopleMinusUser[id];
+
+  const messagesWithoutDupes = uniqBy(messages, "id");
   return (
     <div className="flex h-screen ">
-      <div className=" w-1/3 bg-white-100 pl-4 pt-4">
-        <div className="text-red-500 font-bold flex gap-2 mb-4">
+      <div className=" w-1/3 bg-white flex flex-col">
+        <div className="flex-grow">
+          <div className="text-red-500 font-bold flex gap-2 p-4 ">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -42,40 +97,89 @@ export default function Chat() {
             <path d="M15.75 7.5c-1.376 0-2.739.057-4.086.169C10.124 7.797 9 9.103 9 10.609v4.285c0 1.507 1.128 2.814 2.67 2.94 1.243.102 2.5.157 3.768.165l2.782 2.781a.75.75 0 0 0 1.28-.53v-2.39l.33-.026c1.542-.125 2.67-1.433 2.67-2.94v-4.286c0-1.505-1.125-2.811-2.664-2.94A49.392 49.392 0 0 0 15.75 7.5Z" />
           </svg>
           GrowChat
+        </div> 
+           {Object.keys(onlinePeopleMinusUser).map((userId) => (
+          <div
+            key={userId}
+            onClick={() => setSelectedUserId(userId)}
+            className={
+              "border-b border-gray-100 pl-4 flex items-center gap-2 py-2 cursor-pointer" +
+              (userId === selectedUserId ? " bg-blue-200" : "")
+            }
+          >
+            <Design username={onlinePeople[userId]} userId={userId} />
+            <span className="text-grey-800">{onlinePeople[userId]}</span>
+          </div>
+        ))} 
         </div>
-        {Object.keys(onlinePeople).map((userId) => (
-            <div key={userId} onClick={() => setSelectedUserId(userId)}
-             className={"border-b border-gray-100 flex items-center gap-2 py-2 cursor-pointer"+ (userId === selectedUserId ? 'bg-blue-200' : '' )}>
-                <Design username={onlinePeople[userId]} userId={userId} />
-                <span className="text-grey-800">{onlinePeople[userId]}</span>
+        <div className="p-2 text-center">
+           <button
+           onClick={logout}
+            className="text-sm bg-blue-100 text-gray-500 border">LogOut</button>
             </div>
-        ))}
       </div>
       <div className="flex flex-col w-2/3 bg-blue-300 p-2">
-        <div className="flex-grow">Chat</div>
-        <div className="flex gap-2  ">
-          <input
-            type="text"
-            placeholder="Type Message"
-            className="bg-white flex-grow border rounded p-2"
-          />
-          <button className="bg-blue-500 p-2 text-white">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-              />
-            </svg>
-          </button>
+        <div className="flex-grow">
+          {!selectedUserId && (
+            <div className=" h-full flex items-center justify-center">
+              <div className="text-gray-500">
+                &larr; Select a user to start conversation
+              </div>
+            </div>
+          )}
+          {!!selectedUserId && (
+            <div className="relative h-full">
+              <div className="overflow-y-scroll position-absolute inset-0">
+                {messagesWithoutDupes.map((message) => (
+                  <div
+                    className={
+                      message.sender === id ? "text-right" : "text-left"
+                    }
+                  >
+                    <div
+                      className={
+                        "text-left inline-block p-2 my-2 rounded-md text-sm " +
+                        (message.sender === id
+                          ? "bg-blue-500 text-white"
+                          : "bg-white text-gray-500")
+                      }
+                    >
+                     
+                      {message.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+        {!!selectedUserId && (
+          <form className="flex gap-2" onSubmit={sendMessage}>
+            <input
+              type="text"
+              value={newMessage}
+              placeholder="Type Message"
+              onChange={(ev) => setNewMessage(ev.target.value)}
+              className="bg-white flex-grow border rounded p-2"
+            />
+            <button className="bg-blue-500 p-2 text-white">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-6 h-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+                />
+              </svg>
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
