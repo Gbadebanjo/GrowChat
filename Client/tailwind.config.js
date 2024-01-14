@@ -4,8 +4,13 @@ export default {
     './src/**/*.jsx'
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'custom-blue': '#022c43',
+        'custom-red': '#b73300',
+    },
   },
+},
   plugins: [],
 }
 

@@ -1,0 +1,20 @@
+# Use an official Node.js runtime as the base image
+FROM node:16
+
+# Set the working directory in the Docker image
+WORKDIR /usr/src/app
+
+# Copy package.json and yarn.lock to the working directory
+COPY package.json yarn.lock ./
+
+# Install the application's dependencies inside the Docker image
+RUN yarn install
+
+# Copy the rest of the application to the working directory
+COPY . .
+
+# Expose port 3003 for the application
+EXPOSE 3003
+
+# Define the command to run the application
+CMD [ "node", "index.js" ]

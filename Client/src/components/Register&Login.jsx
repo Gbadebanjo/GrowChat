@@ -15,7 +15,7 @@ const Register = () => {
     // console.log(username, data.id);
   }
   return (
-    <div className="bg-red-200 h-screen flex items-center">
+    <div className="bg-custom-blue h-screen flex items-center">
       <form className="w-80 mx-auto" onSubmit={register}>
         <input
           value={username}
@@ -31,12 +31,12 @@ const Register = () => {
           placeholder="password"
           className="block w-full rounded p-2 mb-2"
         />
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+        <button className="bg-white hover:bg-blue-700 text-blue-500 hover:text-white font-bold py-2 px-4 rounded w-full">
           {isLoginOrRegister === "register" ? "Register" : "Login"}
         </button>
         <div className="text-center pt-2">
           {isLoginOrRegister === "register" && (
-            <div>
+            <div className="text-white">
               Already a member?
               <button
                 onClick={() => setIsLoginOrRegister("login")}
@@ -47,7 +47,7 @@ const Register = () => {
             </div>
           )}
           {isLoginOrRegister === "login" && (
-            <div>
+            <div className="text-white">
               Not a member?
               <button
                 onClick={() => setIsLoginOrRegister("register")}

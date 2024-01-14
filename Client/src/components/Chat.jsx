@@ -104,7 +104,7 @@ function connectToWs() {
             onClick={() => setSelectedUserId(userId)}
             className={
               "border-b border-gray-100 pl-4 flex items-center gap-2 py-2 cursor-pointer" +
-              (userId === selectedUserId ? " bg-blue-200" : "")
+              (userId === selectedUserId ? " bg-custom-blue text-white" : "")
             }
           >
             <Design username={onlinePeople[userId]} userId={userId} />
@@ -115,10 +115,10 @@ function connectToWs() {
         <div className="p-2 text-center">
            <button
            onClick={logout}
-            className="text-sm bg-blue-100 text-gray-500 border">LogOut</button>
+            className="text-sm bg-blue-100 hover:bg-red-500 hover:text-white border rounded">LogOut</button>
             </div>
       </div>
-      <div className="flex flex-col w-2/3 bg-blue-300 p-2">
+      <div className="flex flex-col w-2/3 bg-custom-blue p-2">
         <div className="flex-grow">
           {!selectedUserId && (
             <div className=" h-full flex items-center justify-center">
